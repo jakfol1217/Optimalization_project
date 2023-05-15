@@ -1,16 +1,90 @@
+import copy
+
 import pandas as pd
 import numpy as np
+import copy
+from SVM import loss_function
 
-def loss_function(x, y, z):
-    # x -- parameter vector, in literature usually w
-    # y -- feature vector, y is in R^n
-    # z -- response vector, with values {-1,1}
-    # https://www.csie.ntu.edu.tw/~cjlin/papers/cdl2.pdf <- can't we use one of those methods?
-    sm = 1 - x.T @ y
-    return max(0, sm)
 
-def regularization(x):
-    return np.sum(x**2)
+class coordinate_descend:
+    def __init__(self, C, beta=0.5, ro=0.01):
+        # C - regularization parameter
+        # beta, ro - algoritm parameters
+        self.C = C
+        self.beta = beta
+        self.ro = ro
+        self.x = None
+        self.y = None
 
-def SVM_algorithm(x, y, C):
-    return C * loss_function(x, y) + regularization(x)
+    def fit(self, x, y):
+        # x - data
+        # y - responses
+
+        # weight initialization
+        self.x = x
+        self.y = y
+        w = np.random.normal(size=x.shape[1])
+        # initialize all the H_i, permutation of w, stop condition
+        # TODO
+
+    def _sub_problem(self, w, i):
+        D_hat_hat = self._D_hat_hat(w, 0, i)
+        d = -self._D_hat(w, 0, i)/D_hat_hat
+        lam = 1
+        z = lam * d
+        while True: #:(
+            if lam <= D_hat_hat/((self._H(i)/2) + self.ro):
+                break
+            if self._D(w, z, i) - self._D(w, 0, i) <= self.ro * z**2:
+                break
+            lam *= self.beta
+            z *= self.beta
+        w[i] += z
+        return w
+
+        # TODO
+
+    def _b(self, w, j):
+        bj = 1 - self.y[j] * w.T @ self.x[j,:]
+        return bj
+
+    def _D(self, w, z, i):
+        wz = copy.deepcopy(w)
+        wz[i] += z
+        res = 1/2 * wz.T @ wz
+        sm = 0
+        for j in range(len(self.y)):
+            if self._indi_b(wz, j):
+                sm += _b(wz, j)**2
+        res += C * sm
+        return res
+
+
+    def _D_hat(self, w, z, i):
+        wz = copy.deepcopy(w)
+        wz[i] += z
+        res = wz[i]
+        sm = 0
+        for j in range(len(self.y)):
+            if self._indi_b(wz, j):
+                sm += y[j] * x[j,i] * _b(wz, j)
+        res -= 2 * C * sm
+        return res
+
+    def _D_hat_hat(self, w, z, i):
+        wz = copy.deepcopy(w)
+        wz[i] += z
+        res = 1
+        sm = 0
+        for j in range(len(self.y)):
+            if self._indi_b(wz, j):
+                sm += x[j, i]**2
+        res += 2 * C * sm
+
+    def _indi_b(self, w, j):
+        return self.b(w, j) > 0
+
+    def _H(self, i):
+        return 1 + 2 * self.C * np.sum(self.x[:,i]**2)
+
+
