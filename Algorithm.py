@@ -15,6 +15,7 @@ class coordinate_descend:
         self.ro = ro
         self.x = None
         self.y = None
+        self.H = None
 
     def fit(self, x, y):
         # x - data
@@ -24,8 +25,20 @@ class coordinate_descend:
         self.x = x
         self.y = y
         w = np.random.normal(size=x.shape[1])
+        Hs = [self._H(i) for i in range(x.shape[1])]
+        self.H = Hs
         # initialize all the H_i, permutation of w, stop condition
-        # TODO
+        stop_condition = True
+        while not stop_condition:
+            idx = np.random.permutation(len(w))
+            for i in idx:
+                z = self._sub_problem(w, i)
+                w[i] += z
+        # TODO - find stop condition
+        self.H = None
+        self.x = None
+        self.y = None
+
 
     def _sub_problem(self, w, i):
         D_hat_hat = self._D_hat_hat(w, 0, i)
@@ -39,10 +52,9 @@ class coordinate_descend:
                 break
             lam *= self.beta
             z *= self.beta
-        w[i] += z
-        return w
+        return z
 
-        # TODO
+        # TODO - testing
 
     def _b(self, w, j):
         bj = 1 - self.y[j] * w.T @ self.x[j,:]
@@ -85,6 +97,8 @@ class coordinate_descend:
         return self.b(w, j) > 0
 
     def _H(self, i):
+        if self.H is not None:
+            return self.H[i]
         return 1 + 2 * self.C * np.sum(self.x[:,i]**2)
 
 
