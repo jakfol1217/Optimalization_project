@@ -14,7 +14,7 @@ class CoordinateDescent:
         self.C = C
         self.beta = beta # in (0, 1)
         self.ro = ro # in (0, 1/2)
-        self.eps = eps # solution accuracy
+        self.eps = eps # solution accuracy (for stopping condition)
         self.max_iter = max_iter
         self.x = None
         self.y = None
