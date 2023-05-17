@@ -8,7 +8,7 @@ from SVM import loss_function
 # Algorithm is from
 # https://www.csie.ntu.edu.tw/~cjlin/papers/cdl2.pdf
 class CoordinateDescent:
-    def __init__(self, C, beta=0.5, ro=0.01, eps=1e-15, max_iter=500):
+    def __init__(self, C, beta=0.5, ro=0.01, eps=1e-9, max_iter=500):
         # C - regularization parameter
         # beta, ro - algoritm parameters
         self.C = C
