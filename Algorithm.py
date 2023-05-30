@@ -36,7 +36,6 @@ class CoordinateDescent:
             raise Exception("Algorithm is not fitted yet")
         # weight initialization
         w = np.zeros(self.x.shape[1])
-        stop_condition = True
         # stop condition- max iteration or max(D'_i(0)) small enough or sum(D'_i(0)^2) small enough or validation error
         iter = 0
         stop = self.eps + 1
