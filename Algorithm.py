@@ -63,7 +63,7 @@ class CoordinateDescent:
         d = -D_hat/D_hat_hat
         lam = 1
         z = lam * d
-        while True: #:(
+        while True:
             if lam <= D_hat_hat/((self._H(i)/2) + self.ro):
                 break
             if self._D(w, z, i) - self._D(w, 0, i) <= self.ro * z**2:
