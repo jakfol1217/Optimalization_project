@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 
 def loss_function_row(w, x, y):

@@ -1,6 +1,5 @@
 import copy
 
-import pandas as pd
 import numpy as np
 import copy
 from SVM import loss_function
