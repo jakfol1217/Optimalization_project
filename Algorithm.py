@@ -30,7 +30,7 @@ class CoordinateDescent:
         Hs = [self._H(i) for i in range(x.shape[1])]
         self.H = Hs
 
-    def process(self):
+    def process(self, clear = False):
         if self.x is None or self.y is None or self.H is None:
             raise Exception("Algorithm is not fitted yet")
         # weight initialization
@@ -46,13 +46,15 @@ class CoordinateDescent:
                 w[i] += z
             iter += 1
             stop = sum(self.D**2)
-        self.clear()
+        if clear:
+            self.clear()
         return w
 
-    def fit_process(self, x, y):
+    def fit_process(self, x, y, clear = False):
         self.fit(x, y)
         w = self.process()
-        self.clear()
+        if clear:
+            self.clear()
         return w
 
     def clear(self):
