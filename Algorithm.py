@@ -49,6 +49,12 @@ class CoordinateDescent:
         self.clear()
         return w
 
+    def fit_process(self, x, y):
+        self.fit(x, y)
+        w = self.process()
+        self.clear()
+        return w
+
     def clear(self):
         self.H = None
         self.x = None
