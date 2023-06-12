@@ -4,6 +4,13 @@ import numpy as np
 import copy
 from SVM import loss_function
 
+from tqdm import tqdm
+
+def loss_function(w, x, y):
+    rows = 1 - y * (w @ x.T)
+    rows_sq = np.maximum(rows, 0)**2
+    return np.sum(rows_sq)
+
 # Algorithm is from
 # https://www.csie.ntu.edu.tw/~cjlin/papers/cdl2.pdf
 class CoordinateDescent:
@@ -39,10 +46,11 @@ class CoordinateDescent:
         iter = 0
         stop = self.eps + 1
         while iter < self.max_iter and stop >= self.eps:
+            print(iter, loss_function(w, self.x, self.y))
             self.D = np.array([])
-            #idx = np.random.permutation(len(w))
-            idx = np.random.choice(len(w))
-            for i in [idx]:
+            idx = np.random.permutation(len(w))
+            #idx = np.random.choice(len(w))
+            for i in tqdm(idx):
                 z = self._sub_problem(w, i)
                 w[i] += z
             iter += 1
