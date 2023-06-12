@@ -91,8 +91,8 @@ class CoordinateDescent:
         wz = copy.deepcopy(w)
         wz[i] += z
         res = 1/2 * wz.T @ wz
-
-        res += self.C * np.sum((bjs[idx]- z*self.y[idx]*self.x[idx,i])**2)
+        mm = self.multiply_elementwise(self.x[idx,i].T, self.y[idx])
+        res += self.C * np.sum(np.square(bjs[idx]- z*mm))
         return res
 
 
@@ -100,7 +100,8 @@ class CoordinateDescent:
         wz = copy.deepcopy(w)
         wz[i] += z
         res = wz[i]
-        res -= 2 * self.C * np.sum(self.y[idx]*self.x[idx,i]*(bjs[idx]- z*self.y[idx]*self.x[idx,i]))
+        mm = self.multiply_elementwise(self.x[idx,i].T, self.y[idx])
+        res -= 2 * self.C * np.sum(self.multiply_elementwise(mm, bjs[idx]-z*mm))
         return res
 
     def _D_hat_hat(self, w, z, i, idx, bjs):
@@ -127,7 +128,7 @@ class CoordinateDescent:
 
     def multiply_elementwise(self, x1, x2):
         import scipy
-        if type(x1) == scipy.sparse._csr.csr_matrix or type(x2) == scipy.sparse._csc.csc_matrix :
-            return x1.multiply(x2)
-        else:
-            return x1 * x2
+        #if type(x1) == scipy.sparse._csr.csr_matrix or type(x2) == scipy.sparse._csc.csc_matrix :
+        return x1.multiply(x2)
+        #else:
+         #   return x1 * x2
