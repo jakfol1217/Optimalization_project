@@ -26,6 +26,7 @@ class CoordinateDescent:
         self.y = None
         self.H = None
         self.D = np.array([])
+        self.w_history = []
 
 
     def fit(self, x, y):
@@ -53,6 +54,7 @@ class CoordinateDescent:
             for i in idx:
                 z = self._sub_problem(w, i)
                 w[i] += z
+            self.w_history.append(w)
             iter += 1
             stop = sum(self.D**2)
         if clear:
