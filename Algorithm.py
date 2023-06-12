@@ -40,8 +40,9 @@ class CoordinateDescent:
         stop = self.eps + 1
         while iter < self.max_iter and stop >= self.eps:
             self.D = np.array([])
-            idx = np.random.permutation(len(w))
-            for i in idx:
+            #idx = np.random.permutation(len(w))
+            idx = np.random.choice(len(w))
+            for i in [idx]:
                 z = self._sub_problem(w, i)
                 w[i] += z
             iter += 1
