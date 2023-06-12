@@ -3,7 +3,7 @@ import copy
 import numpy as np
 import copy
 from SVM import loss_function
-
+from datetime import datetime
 from tqdm import tqdm
 
 def loss_function(w, x, y):
@@ -46,11 +46,11 @@ class CoordinateDescent:
         iter = 0
         stop = self.eps + 1
         while iter < self.max_iter and stop >= self.eps:
-            print(iter, loss_function(w, self.x, self.y))
+            print(datetime.isoformat(datetime.now()), iter, loss_function(w, self.x, self.y))
             self.D = np.array([])
             idx = np.random.permutation(len(w))
             #idx = np.random.choice(len(w))
-            for i in tqdm(idx):
+            for i in idx:
                 z = self._sub_problem(w, i)
                 w[i] += z
             iter += 1
