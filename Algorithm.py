@@ -126,6 +126,13 @@ class CoordinateDescent:
     def _H(self, i):
         if self.H is not None:
             return self.H[i]
-        return 1 + 2 * self.C * np.sum(self.x[:,i]**2)
+        return 1 + 2 * self.C * np.sum(
+            self.multiply_elementwise(self.x[:,i], self.x[:,i])
+        )
 
-
+    def multiply_elementwise(self, x1, x2):
+        import scipy
+        if type(x1) == scipy.sparse._csr.csr_matrix:
+            return x1.multiply(x2)
+        else:
+            return x1 * x2
