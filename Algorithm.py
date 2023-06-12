@@ -64,8 +64,9 @@ class CoordinateDescent:
 
 
     def _sub_problem(self, w, i):
-        D_hat_hat = self._D_hat_hat(w, 0, i)
-        D_hat = self._D_hat(w, 0, i)
+        bjs, idx = self._indi_b(w)
+        D_hat_hat = self._D_hat_hat(w, 0, i, idx, bjs)
+        D_hat = self._D_hat(w, 0, i, idx, bjs)
         self.D = np.append(self.D, D_hat)
         d = -D_hat/D_hat_hat
         lam = 1
@@ -74,7 +75,7 @@ class CoordinateDescent:
         while iter < self.max_iter:
             if lam <= D_hat_hat/((self._H(i)/2) + self.ro):
                 break
-            if self._D(w, z, i) - self._D(w, 0, i) <= self.ro * z**2:
+            if self._D(w, z, i, idx, bjs) - self._D(w, 0, i, idx, bjs) <= self.ro * z**2:
                 break
             lam *= self.beta
             z *= self.beta
@@ -82,46 +83,37 @@ class CoordinateDescent:
         return z
 
 
-    def _b(self, w, j):
-        bj = 1 - self.y[j] * w.T @ self.x[j,:]
+    def _b(self, w):
+        bj = np.ones(len(self.y)) - self.y * (w @ self.x.T)
         return bj
 
-    def _D(self, w, z, i):
+    def _D(self, w, z, i, idx, bjs):
         wz = copy.deepcopy(w)
         wz[i] += z
         res = 1/2 * wz.T @ wz
-        sm = 0
-        for j in range(len(self.y)):
-            if self._indi_b(wz, j):
-                sm += self._b(wz, j)**2
-        res += self.C * sm
+
+        res += self.C * np.sum((bjs[idx]- z*self.y[idx]*self.x[idx,i])**2)
         return res
 
 
-    def _D_hat(self, w, z, i):
+    def _D_hat(self, w, z, i, idx, bjs):
         wz = copy.deepcopy(w)
         wz[i] += z
         res = wz[i]
-        sm = 0
-        for j in range(len(self.y)):
-            if self._indi_b(wz, j):
-                sm += self.y[j] * self.x[j,i] * self._b(wz, j)
-        res -= 2 * self.C * sm
+        res -= 2 * self.C * np.sum(self.y[idx]*self.x[idx,i]*(bjs[idx]- z*self.y[idx]*self.x[idx,i]))
         return res
 
-    def _D_hat_hat(self, w, z, i):
+    def _D_hat_hat(self, w, z, i, idx, bjs):
         wz = copy.deepcopy(w)
         wz[i] += z
         res = 1
-        sm = 0
-        for j in range(len(self.y)):
-            if self._indi_b(wz, j):
-                sm += self.x[j, i]**2
-        res += 2 * self.C * sm
+        res += 2 * self.C * np.sum(self.x[idx, i]**2)
         return res
 
-    def _indi_b(self, w, j):
-        return self._b(w, j) > 0
+    def _indi_b(self, w):
+        bjs = self._b(w)
+        idx = bjs > 0
+        return bjs, idx
 
     def _H(self, i):
         if self.H is not None:
