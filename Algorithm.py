@@ -107,7 +107,10 @@ class CoordinateDescent:
         wz = copy.deepcopy(w)
         wz[i] += z
         res = 1
-        res += 2 * self.C * np.sum(self.x[idx, i]**2)
+        res += 2 * self.C * np.sum(
+            self.multiply_elementwise(self.x[idx, i], self.x[idx, i])
+        )
+
         return res
 
     def _indi_b(self, w):
