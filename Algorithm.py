@@ -138,10 +138,9 @@ class CoordinateDescent:
         )
 
     def multiply_elementwise(self, x1, x2):
-        import scipy
-        if type(x1) == scipy.sparse._csr.csr_matrix or type(x1) == scipy.sparse._csc.csc_matrix:
+        if "sparse" in str(type(x1)):
             return x1.multiply(x2)
-        elif type(x2) == scipy.sparse._csr.csr_matrix or type(x2) == scipy.sparse._csc.csc_matrix:
+        elif "sparse" in str(type(x2)):
             return x2.multiply(x1)
         else:
             return x1 * x2
