@@ -24,6 +24,7 @@ class CoordinateDescent:
         self.max_iter = max_iter
         self.x = None
         self.x2 = None
+        self.xy = None
         self.y = None
         self.H = None
         self.D = np.array([])
@@ -37,9 +38,14 @@ class CoordinateDescent:
         self.x = x
         self.x2 = self.multiply_elementwise(x, x)
         self.y = y
+        self.xy = self.multiply_elementwise(x, y[None].T)
+        if "sparse" in str(type(self.xy)):
+            # this multiplication results in COO matrix as opposed to CSC
+            from scipy.sparse import csc_matrix
+            self.xy = csc_matrix(self.xy)
         Hs = [self._H(i) for i in range(x.shape[1])]
         self.H = Hs
-
+    
     def process(self, clear = False):
         if self.x is None or self.y is None or self.H is None:
             raise Exception("Algorithm is not fitted yet")
@@ -75,7 +81,6 @@ class CoordinateDescent:
         self.x = None
         self.y = None
 
-
     def _sub_problem(self, w, i):
         bjs, idx = self._indi_b(w)
         D_hat_hat = self._D_hat_hat(w, 0, i, idx, bjs)
@@ -95,28 +100,28 @@ class CoordinateDescent:
             iter += 1
         return z
 
-
     def _b(self, w):
         bj = np.ones(len(self.y)) - self.y * (w @ self.x.T)
         return bj
-
+    
     def _D(self, w, z, i, idx, bjs):
         wz = copy.deepcopy(w)
         wz[i] += z
         res = 1/2 * wz.T @ wz
-        mm = self.multiply_elementwise(self.x[idx,i].T, self.y[idx])
-        res += self.C * np.sum(np.square(bjs[idx]- z*mm))
+        mm = self.xy[idx,i]
+        res += self.C * np.sum(np.square(bjs[idx][None].T - z*mm))
         return res
-
 
     def _D_hat(self, w, z, i, idx, bjs):
         wz = copy.deepcopy(w)
         wz[i] += z
         res = wz[i]
-        mm = self.multiply_elementwise(self.x[idx,i].T, self.y[idx])
-        res -= 2 * self.C * np.sum(self.multiply_elementwise(mm, bjs[idx]-z*mm))
+        mm = self.xy[idx,i]
+        zmm = z*mm
+        bsj_zmm = bjs[idx][None].T - zmm
+        res -= 2 * self.C * np.sum(self.multiply_elementwise(mm, bsj_zmm))
         return res
-
+    
     def _D_hat_hat(self, w, z, i, idx, bjs):
         wz = copy.deepcopy(w)
         wz[i] += z
