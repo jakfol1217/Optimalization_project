@@ -23,6 +23,7 @@ class CoordinateDescent:
         self.eps = eps # solution accuracy (for stopping condition)
         self.max_iter = max_iter
         self.x = None
+        self.x2 = None
         self.y = None
         self.H = None
         self.D = np.array([])
@@ -34,6 +35,7 @@ class CoordinateDescent:
         # y - responses
         # to add bias just include a column of ones
         self.x = x
+        self.x2 = self.multiply_elementwise(x, x)
         self.y = y
         Hs = [self._H(i) for i in range(x.shape[1])]
         self.H = Hs
@@ -119,9 +121,7 @@ class CoordinateDescent:
         wz = copy.deepcopy(w)
         wz[i] += z
         res = 1
-        res += 2 * self.C * np.sum(
-            self.multiply_elementwise(self.x[idx, i], self.x[idx, i])
-        )
+        res += 2 * self.C * np.sum(self.x2[idx, i])
 
         return res
 
@@ -133,9 +133,7 @@ class CoordinateDescent:
     def _H(self, i):
         if self.H is not None:
             return self.H[i]
-        return 1 + 2 * self.C * np.sum(
-            self.multiply_elementwise(self.x[:,i], self.x[:,i])
-        )
+        return 1 + 2 * self.C * np.sum(self.x2[:,i])
 
     def multiply_elementwise(self, x1, x2):
         if "sparse" in str(type(x1)):
