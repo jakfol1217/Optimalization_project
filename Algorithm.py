@@ -43,6 +43,9 @@ class CoordinateDescent:
             # this multiplication results in COO matrix as opposed to CSC
             from scipy.sparse import csc_matrix
             self.xy = csc_matrix(self.xy)
+        
+        self.w = np.zeros(self.x.shape[1])
+        self.b = np.ones(len(self.y)) - self.y * (self.w @ self.x.T)
         Hs = [self._H(i) for i in range(x.shape[1])]
         self.H = Hs
     
@@ -51,6 +54,7 @@ class CoordinateDescent:
             raise Exception("Algorithm is not fitted yet")
         # weight initialization
         w = np.zeros(self.x.shape[1])
+        self.w = w
         # stop condition- max iteration or max(D'_i(0)) small enough or sum(D'_i(0)^2) small enough or validation error
         iter = 0
         stop = self.eps + 1
@@ -62,6 +66,8 @@ class CoordinateDescent:
             for i in idx:
                 z = self._sub_problem(w, i)
                 w[i] += z
+                self.b -= z * self.xy[:, i].T
+                self.b = np.asarray(self.b).reshape(-1)
             self.w_history.append(w)
             iter += 1
             stop = sum(self.D**2)
@@ -99,10 +105,10 @@ class CoordinateDescent:
             z *= self.beta
             iter += 1
         return z
-
+    
     def _b(self, w):
-        bj = np.ones(len(self.y)) - self.y * (w @ self.x.T)
-        return bj
+        #bj = np.ones(len(self.y)) - self.y * (w @ self.x.T)
+        return self.b
     
     def _D(self, w, z, i, idx, bjs):
         wz = copy.deepcopy(w)
