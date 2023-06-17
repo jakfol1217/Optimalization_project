@@ -115,6 +115,11 @@ class CoordinateDescent:
         wz = copy.deepcopy(w)
         wz[i] += z
         res = 1 / 2 * wz.T @ wz
+        # Fixed _D:
+        # mm = bjs[None].T - z * self.xy[:, i]
+        # if z != 0:
+        #   idx = mm > 0
+        #res += self.C * np.sum(np.square(mm[idx]))
         mm = self.xy[idx, i]
         res += self.C * np.sum(np.square(bjs[idx][None].T - z * mm))
         return res
@@ -123,17 +128,17 @@ class CoordinateDescent:
         #wz = copy.deepcopy(w)
         #wz[i] += z
         res = w[i]#wz[i]
-        mm = self.xy[idx, i]
+        #mm = self.xy[:, i]
         #zmm = z * mm
-        bsj_zmm = bjs[idx][None].T# - zmm
-        res -= 2 * self.C * np.sum(self.multiply_elementwise(mm, bsj_zmm))
+        #bsj_zmm = bjs[None].T# - zmm
+        res -= 2 * self.C * self.sum_vector_coo(self.multiply_elementwise(self.xy[:, i], bjs[None].T), idx)
         return res
 
     def _D_hat_hat(self, w, i, idx, bjs):
         #wz = copy.deepcopy(w)
         #wz[i] += z
         res = 1
-        res += 2 * self.C * np.sum(self.x2[idx, i])
+        res += 2 * self.C * self.sum_vector_csr(self.x2[:, i], idx)
 
         return res
 
@@ -154,3 +159,17 @@ class CoordinateDescent:
             return x2.multiply(x1)
         else:
             return x1 * x2
+
+    def sum_vector_coo(self, x, idx):
+        total = 0
+        for data, el in zip(x.data, x.col):
+            if idx[el]:
+                total += data
+        return total
+
+    def sum_vector_csr(self, x, idx):
+        total = 0
+        for data, el in zip(x.data, x.indices):
+            if idx[el]:
+                total += data
+        return total
