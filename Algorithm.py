@@ -6,10 +6,12 @@ from SVM import loss_function
 from datetime import datetime
 from tqdm import tqdm
 
+
 def loss_function(w, x, y):
     rows = 1 - y * (w @ x.T)
-    rows_sq = np.maximum(rows, 0)**2
+    rows_sq = np.maximum(rows, 0) ** 2
     return np.sum(rows_sq)
+
 
 # Algorithm is from
 # https://www.csie.ntu.edu.tw/~cjlin/papers/cdl2.pdf
@@ -18,9 +20,9 @@ class CoordinateDescent:
         # C - regularization parameter
         # beta, ro - algoritm parameters
         self.C = C
-        self.beta = beta # in (0, 1)
-        self.ro = ro # in (0, 1/2)
-        self.eps = eps # solution accuracy (for stopping condition)
+        self.beta = beta  # in (0, 1)
+        self.ro = ro  # in (0, 1/2)
+        self.eps = eps  # solution accuracy (for stopping condition)
         self.max_iter = max_iter
         self.x = None
         self.x2 = None
@@ -29,7 +31,6 @@ class CoordinateDescent:
         self.H = None
         self.D = np.array([])
         self.w_history = []
-
 
     def fit(self, x, y):
         # x - data
@@ -43,13 +44,13 @@ class CoordinateDescent:
             # this multiplication results in COO matrix as opposed to CSC
             from scipy.sparse import csc_matrix
             self.xy = csc_matrix(self.xy)
-        
+
         self.w = np.zeros(self.x.shape[1])
         self.b = np.ones(len(self.y)) - self.y * (self.w @ self.x.T)
         Hs = [self._H(i) for i in range(x.shape[1])]
         self.H = Hs
-    
-    def process(self, clear = False):
+
+    def process(self, clear=False):
         if self.x is None or self.y is None or self.H is None:
             raise Exception("Algorithm is not fitted yet")
         # weight initialization
@@ -62,7 +63,7 @@ class CoordinateDescent:
             print(datetime.isoformat(datetime.now()), iter, loss_function(w, self.x, self.y))
             self.D = np.array([])
             idx = np.random.permutation(len(w))
-            #idx = np.random.choice(len(w))
+            # idx = np.random.choice(len(w))
             for i in idx:
                 z = self._sub_problem(w, i)
                 w[i] += z
@@ -70,12 +71,12 @@ class CoordinateDescent:
                 self.b = np.asarray(self.b).reshape(-1)
             self.w_history.append(w)
             iter += 1
-            stop = sum(self.D**2)
+            stop = sum(self.D ** 2)
         if clear:
             self.clear()
         return w
 
-    def fit_process(self, x, y, clear = False):
+    def fit_process(self, x, y, clear=False):
         self.fit(x, y)
         w = self.process()
         if clear:
@@ -89,48 +90,48 @@ class CoordinateDescent:
 
     def _sub_problem(self, w, i):
         bjs, idx = self._indi_b(w)
-        D_hat_hat = self._D_hat_hat(w, 0, i, idx, bjs)
-        D_hat = self._D_hat(w, 0, i, idx, bjs)
+        D_hat_hat = self._D_hat_hat(w, i, idx, bjs)
+        D_hat = self._D_hat(w, i, idx, bjs)
         self.D = np.append(self.D, D_hat)
-        d = -D_hat/D_hat_hat
+        d = -D_hat / D_hat_hat
         lam = 1
         z = lam * d
         iter = 0
         while iter < self.max_iter:
-            if lam <= D_hat_hat/((self._H(i)/2) + self.ro):
+            if lam <= D_hat_hat / ((self._H(i) / 2) + self.ro):
                 break
-            if self._D(w, z, i, idx, bjs) - self._D(w, 0, i, idx, bjs) <= self.ro * z**2:
+            if self._D(w, z, i, idx, bjs) - self._D(w, 0, i, idx, bjs) <= self.ro * z ** 2:
                 break
             lam *= self.beta
             z *= self.beta
             iter += 1
         return z
-    
+
     def _b(self, w):
-        #bj = np.ones(len(self.y)) - self.y * (w @ self.x.T)
+        # bj = np.ones(len(self.y)) - self.y * (w @ self.x.T)
         return self.b
-    
+
     def _D(self, w, z, i, idx, bjs):
         wz = copy.deepcopy(w)
         wz[i] += z
-        res = 1/2 * wz.T @ wz
-        mm = self.xy[idx,i]
-        res += self.C * np.sum(np.square(bjs[idx][None].T - z*mm))
+        res = 1 / 2 * wz.T @ wz
+        mm = self.xy[idx, i]
+        res += self.C * np.sum(np.square(bjs[idx][None].T - z * mm))
         return res
 
-    def _D_hat(self, w, z, i, idx, bjs):
-        wz = copy.deepcopy(w)
-        wz[i] += z
-        res = wz[i]
-        mm = self.xy[idx,i]
-        zmm = z*mm
-        bsj_zmm = bjs[idx][None].T - zmm
+    def _D_hat(self, w, i, idx, bjs):
+        #wz = copy.deepcopy(w)
+        #wz[i] += z
+        res = w[i]#wz[i]
+        mm = self.xy[idx, i]
+        #zmm = z * mm
+        bsj_zmm = bjs[idx][None].T# - zmm
         res -= 2 * self.C * np.sum(self.multiply_elementwise(mm, bsj_zmm))
         return res
-    
-    def _D_hat_hat(self, w, z, i, idx, bjs):
-        wz = copy.deepcopy(w)
-        wz[i] += z
+
+    def _D_hat_hat(self, w, i, idx, bjs):
+        #wz = copy.deepcopy(w)
+        #wz[i] += z
         res = 1
         res += 2 * self.C * np.sum(self.x2[idx, i])
 
@@ -144,7 +145,7 @@ class CoordinateDescent:
     def _H(self, i):
         if self.H is not None:
             return self.H[i]
-        return 1 + 2 * self.C * np.sum(self.x2[:,i])
+        return 1 + 2 * self.C * np.sum(self.x2[:, i])
 
     def multiply_elementwise(self, x1, x2):
         if "sparse" in str(type(x1)):
