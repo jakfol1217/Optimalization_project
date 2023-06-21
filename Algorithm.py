@@ -12,6 +12,28 @@ def loss_function(w, x, y):
     rows_sq = np.maximum(rows, 0) ** 2
     return np.sum(rows_sq)
 
+def very_fast(x_csc, i, idx):
+    total = 0
+    start = x_csc.indptr[i]
+    end = x_csc.indptr[i+1]
+    col_sliced = x_csc.data[start:end]
+    col_slicei = x_csc.indices[start:end]
+    for data, el in zip(col_sliced, col_slicei):
+        if idx[el]:
+            total += data
+    return total
+
+def very_fast_multiply_inside(x_csc, i, idx, bjs):
+    total = 0
+    start = x_csc.indptr[i]
+    end = x_csc.indptr[i+1]
+    col_sliced = x_csc.data[start:end]
+    col_slicei = x_csc.indices[start:end]
+    for data, el in zip(col_sliced, col_slicei):
+        if idx[el]:
+            total += data * bjs[el]
+    return total
+
 
 # Algorithm is from
 # https://www.csie.ntu.edu.tw/~cjlin/papers/cdl2.pdf
@@ -125,13 +147,8 @@ class CoordinateDescent:
         return res
 
     def _D_hat(self, w, i, idx, bjs):
-        #wz = copy.deepcopy(w)
-        #wz[i] += z
-        res = w[i]#wz[i]
-        #mm = self.xy[:, i]
-        #zmm = z * mm
-        #bsj_zmm = bjs[None].T# - zmm
-        res -= 2 * self.C * self.sum_vector_coo(self.multiply_elementwise(self.xy[:, i], bjs[None].T), idx)
+        res = w[i]
+        res -= 2 * self.C * very_fast_multiply_inside(self.xy, i, idx, bjs)
         return res
 
     def _D_hat_hat(self, w, i, idx, bjs):
