@@ -5,63 +5,70 @@ import copy
 from SVM import loss_function
 from datetime import datetime
 from tqdm import tqdm
-
+from numba import njit
 
 def loss_function(w, x, y):
     rows = 1 - y * (w @ x.T)
     rows_sq = np.maximum(rows, 0) ** 2
     return np.sum(rows_sq)
 
-def very_fast_all(x_csc, i):
+@njit
+def very_fast_all(x_data, x_indptr, x_indices, i):
     total = 0
-    start = x_csc.indptr[i]
-    end = x_csc.indptr[i+1]
-    col_sliced = x_csc.data[start:end]
-    col_slicei = x_csc.indices[start:end]
+    start = x_indptr[i]
+    end = x_indptr[i+1]
+    col_sliced = x_data[start:end]
+    col_slicei = x_indices[start:end]
     for data, el in zip(col_sliced, col_slicei):
         total += data
     return total
 
-def very_fast(x_csc, i, idx):
+@njit
+def very_fast(x_data, x_indptr, x_indices, i, idx):
     total = 0
-    start = x_csc.indptr[i]
-    end = x_csc.indptr[i+1]
-    col_sliced = x_csc.data[start:end]
-    col_slicei = x_csc.indices[start:end]
+    start = x_indptr[i]
+    end = x_indptr[i+1]
+    col_sliced = x_data[start:end]
+    col_slicei = x_indices[start:end]
     for data, el in zip(col_sliced, col_slicei):
         if idx[el]:
             total += data
     return total
 
-def very_fast_multiply_inside(x_csc, i, idx, bjs):
+@njit
+def very_fast_multiply_inside(x_data, x_indptr, x_indices, i, idx, bjs):
     total = 0
-    start = x_csc.indptr[i]
-    end = x_csc.indptr[i+1]
-    col_sliced = x_csc.data[start:end]
-    col_slicei = x_csc.indices[start:end]
+    start = x_indptr[i]
+    end = x_indptr[i+1]
+    col_sliced = x_data[start:end]
+    col_slicei = x_indices[start:end]
     for data, el in zip(col_sliced, col_slicei):
         if idx[el]:
             total += data * bjs[el]
     return total
 
-def fast_D(x_csc, i, idx, bjs, z):
+@njit
+def fast_D(x_data, x_indptr, x_indices, i, idx, bjs, z):
     total = 0
-    start = x_csc.indptr[i]
-    end = x_csc.indptr[i+1]
-    col_sliced = x_csc.data[start:end]
-    col_slicei = x_csc.indices[start:end]
+    start = x_indptr[i]
+    end = x_indptr[i+1]
+    col_sliced = x_data[start:end]
+    col_slicei = x_indices[start:end]
     for x, current_index in zip(col_sliced, col_slicei):
         if idx[current_index]:
             total += (bjs[current_index] - z * x)**2 
     return total
 
-def fast_update_b(x_csc, i, z, b):
-    start = x_csc.indptr[i]
-    end = x_csc.indptr[i+1]
-    col_sliced = x_csc.data[start:end]
-    col_slicei = x_csc.indices[start:end]
+@njit
+def fast_update_b(x_data, x_indptr, x_indices, i, z, b, b_idx):
+    start = x_indptr[i]
+    end = x_indptr[i+1]
+    col_sliced = x_data[start:end]
+    col_slicei = x_indices[start:end]
     for x, current_index in zip(col_sliced, col_slicei):
         b[current_index] -= z * x
+        b_idx[current_index] = b[current_index] > 0
+
 
 # Algorithm is from
 # https://www.csie.ntu.edu.tw/~cjlin/papers/cdl2.pdf
@@ -97,6 +104,7 @@ class CoordinateDescent:
 
         self.w = np.zeros(self.x.shape[1])
         self.b = np.ones(len(self.y)) - self.y * (self.w @ self.x.T)
+        self.b_idx = self.b > 0
         Hs = [self._H(i) for i in range(x.shape[1])]
         self.H = Hs
 
@@ -117,7 +125,7 @@ class CoordinateDescent:
             for i in idx:
                 z = self._sub_problem(w, i)
                 w[i] += z
-                fast_update_b(self.xy, i, z, self.b)
+                fast_update_b(self.xy.data, self.xy.indptr, self.xy.indices, i, z, self.b, self.b_idx)
             self.w_history.append(w)
             iter += 1
             stop = sum(self.D ** 2)
@@ -138,9 +146,8 @@ class CoordinateDescent:
         self.y = None
 
     def _sub_problem(self, w, i):
-        bjs, idx = self._indi_b(w)
-        D_hat_hat = self._D_hat_hat(w, i, idx, bjs)
-        D_hat = self._D_hat(w, i, idx, bjs)
+        D_hat_hat = self._D_hat_hat(w, i)
+        D_hat = self._D_hat(w, i)
         self.D[i] = D_hat
         d = -D_hat / D_hat_hat
         lam = 1
@@ -149,7 +156,7 @@ class CoordinateDescent:
         while iter < self.max_iter:
             if lam <= D_hat_hat / ((self.H[i] / 2) + self.ro):
                 break
-            if self._D(w, z, i, idx, bjs) - self._D(w, 0, i, idx, bjs) <= self.ro * z ** 2:
+            if self._D(w, z, i) - self._D(w, 0, i) <= self.ro * z ** 2:
                 break
             lam *= self.beta
             z *= self.beta
@@ -160,40 +167,33 @@ class CoordinateDescent:
         # bj = np.ones(len(self.y)) - self.y * (w @ self.x.T)
         return self.b
 
-    def _D(self, w, z, i, idx, bjs):
+    def _D(self, w, z, i):
         wz = copy.deepcopy(w)
         wz[i] += z
         res = 0.5 * np.sum(np.square(wz))
-        # Fixed _D:
-        # mm = bjs[None].T - z * self.xy[:, i]
-        # if z != 0:
-        #   idx = mm > 0
-        #res += self.C * np.sum(np.square(mm[idx]))
-        # mm = self.xy[idx, i]
-        res += self.C * fast_D(self.xy, i, idx, bjs, z)
-        #np.sum(np.square(bjs[idx][None].T - z * mm))
+        res += self.C * fast_D(self.xy.data, self.xy.indptr, self.xy.indices, i, self.b_idx, self.b, z)
         return res
 
-    def _D_hat(self, w, i, idx, bjs):
+    def _D_hat(self, w, i):
         res = w[i]
-        res -= 2 * self.C * very_fast_multiply_inside(self.xy, i, idx, bjs)
+        res -= 2 * self.C * very_fast_multiply_inside(self.xy.data, self.xy.indptr, self.xy.indices, i, self.b_idx, self.b)
         return res
 
-    def _D_hat_hat(self, w, i, idx, bjs):
+    def _D_hat_hat(self, w, i):
         #wz = copy.deepcopy(w)
         #wz[i] += z
         res = 1
-        res += 2 * self.C * very_fast(self.x2, i, idx)
+        res += 2 * self.C * very_fast(self.x2.data, self.x2.indptr, self.x2.indices, i, self.b_idx)
 
         return res
 
     def _indi_b(self, w):
-        bjs = self._b(w)
+        bjs = self.b
         idx = bjs > 0
         return bjs, idx
 
     def _H(self, i):
-        return 1 + 2 * self.C * very_fast_all(self.x2, i)
+        return 1 + 2 * self.C * very_fast_all(self.x2.data, self.x2.indptr, self.x2.indices, i)
 
     def multiply_elementwise(self, x1, x2):
         if "sparse" in str(type(x1)):
