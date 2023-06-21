@@ -12,6 +12,16 @@ def loss_function(w, x, y):
     rows_sq = np.maximum(rows, 0) ** 2
     return np.sum(rows_sq)
 
+def very_fast_all(x_csc, i):
+    total = 0
+    start = x_csc.indptr[i]
+    end = x_csc.indptr[i+1]
+    col_sliced = x_csc.data[start:end]
+    col_slicei = x_csc.indices[start:end]
+    for data, el in zip(col_sliced, col_slicei):
+        total += data
+    return total
+
 def very_fast(x_csc, i, idx):
     total = 0
     start = x_csc.indptr[i]
@@ -185,7 +195,7 @@ class CoordinateDescent:
     def _H(self, i):
         if self.H is not None:
             return self.H[i]
-        return 1 + 2 * self.C * np.sum(self.x2[:, i])
+        return 1 + 2 * self.C * very_fast_all(self.x2, i)
 
     def multiply_elementwise(self, x1, x2):
         if "sparse" in str(type(x1)):
