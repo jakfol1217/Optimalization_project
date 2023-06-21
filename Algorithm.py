@@ -193,8 +193,6 @@ class CoordinateDescent:
         return bjs, idx
 
     def _H(self, i):
-        if self.H is not None:
-            return self.H[i]
         return 1 + 2 * self.C * very_fast_all(self.x2, i)
 
     def multiply_elementwise(self, x1, x2):
