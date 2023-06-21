@@ -45,6 +45,14 @@ def fast_D(x_csc, i, idx, bjs, z):
             total += (bjs[current_index] - z * x)**2 
     return total
 
+def fast_update_b(x_csc, i, z, b):
+    start = x_csc.indptr[i]
+    end = x_csc.indptr[i+1]
+    col_sliced = x_csc.data[start:end]
+    col_slicei = x_csc.indices[start:end]
+    for x, current_index in zip(col_sliced, col_slicei):
+        b[current_index] -= z * x
+
 # Algorithm is from
 # https://www.csie.ntu.edu.tw/~cjlin/papers/cdl2.pdf
 class CoordinateDescent:
@@ -99,8 +107,7 @@ class CoordinateDescent:
             for i in idx:
                 z = self._sub_problem(w, i)
                 w[i] += z
-                self.b -= z * self.xy[:, i].T
-                self.b = np.asarray(self.b).reshape(-1)
+                fast_update_b(self.xy, i, z, self.b)
             self.w_history.append(w)
             iter += 1
             stop = sum(self.D ** 2)
