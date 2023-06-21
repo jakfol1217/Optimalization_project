@@ -183,7 +183,7 @@ class SubProblemSolver:
 # Algorithm is from
 # https://www.csie.ntu.edu.tw/~cjlin/papers/cdl2.pdf
 class CoordinateDescent:
-    def __init__(self, C, beta=0.5, ro=0.01, eps=1e-9, max_iter=500):
+    def __init__(self, C, beta=0.5, ro=0.01, eps=1e-9, max_iter=500, verbose=False, log_history=True):
         # C - regularization parameter
         # beta, ro - algoritm parameters
         self.C = C
@@ -193,6 +193,8 @@ class CoordinateDescent:
         self.max_iter = max_iter
         self.history = []
         self.subiter = None
+        self.verbose = verbose
+        self.log_history = log_history
 
     def fit(self, x, y):
         # x - data
@@ -244,9 +246,11 @@ class CoordinateDescent:
 
     def log(self, iter):
         from time import time
-        loss = SVM_algorithm(self.w, self.x, self.y, self.C)
-        self.history.append((self.w.copy(), iter, time(), loss))
-        print(time(), iter, loss)
+        if self.log_history:
+            loss = SVM_algorithm(self.w, self.x, self.y, self.C)
+            self.history.append((self.w.copy(), iter, time(), loss))
+        if self.verbose:
+            print(time(), iter, loss)
 
     def fit_process(self, x, y):
         self.fit(x, y)
