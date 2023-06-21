@@ -34,6 +34,16 @@ def very_fast_multiply_inside(x_csc, i, idx, bjs):
             total += data * bjs[el]
     return total
 
+def fast_D(x_csc, i, idx, bjs, z):
+    total = 0
+    start = x_csc.indptr[i]
+    end = x_csc.indptr[i+1]
+    col_sliced = x_csc.data[start:end]
+    col_slicei = x_csc.indices[start:end]
+    for x, current_index in zip(col_sliced, col_slicei):
+        if idx[current_index]:
+            total += (bjs[current_index] - z * x)**2 
+    return total
 
 # Algorithm is from
 # https://www.csie.ntu.edu.tw/~cjlin/papers/cdl2.pdf
@@ -136,14 +146,15 @@ class CoordinateDescent:
     def _D(self, w, z, i, idx, bjs):
         wz = copy.deepcopy(w)
         wz[i] += z
-        res = 1 / 2 * wz.T @ wz
+        res = 0.5 * np.sum(np.square(wz))
         # Fixed _D:
         # mm = bjs[None].T - z * self.xy[:, i]
         # if z != 0:
         #   idx = mm > 0
         #res += self.C * np.sum(np.square(mm[idx]))
-        mm = self.xy[idx, i]
-        res += self.C * np.sum(np.square(bjs[idx][None].T - z * mm))
+        # mm = self.xy[idx, i]
+        res += self.C * fast_D(self.xy, i, idx, bjs, z)
+        #np.sum(np.square(bjs[idx][None].T - z * mm))
         return res
 
     def _D_hat(self, w, i, idx, bjs):
