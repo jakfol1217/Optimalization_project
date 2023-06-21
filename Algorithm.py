@@ -111,7 +111,7 @@ class CoordinateDescent:
         stop = self.eps + 1
         while iter < self.max_iter and stop >= self.eps:
             print(datetime.isoformat(datetime.now()), iter, loss_function(w, self.x, self.y))
-            self.D = np.array([])
+            self.D = np.zeros(self.x.shape[1])
             idx = np.random.permutation(len(w))
             # idx = np.random.choice(len(w))
             for i in idx:
@@ -141,7 +141,7 @@ class CoordinateDescent:
         bjs, idx = self._indi_b(w)
         D_hat_hat = self._D_hat_hat(w, i, idx, bjs)
         D_hat = self._D_hat(w, i, idx, bjs)
-        self.D = np.append(self.D, D_hat)
+        self.D[i] = D_hat
         d = -D_hat / D_hat_hat
         lam = 1
         z = lam * d
