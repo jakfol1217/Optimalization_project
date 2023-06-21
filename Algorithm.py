@@ -1,10 +1,6 @@
-import copy
-
 import numpy as np
 import copy
 from SVM import loss_function
-from datetime import datetime
-from tqdm import tqdm
 from scipy.sparse import csc_matrix
 from numba import njit
 
@@ -12,6 +8,12 @@ def loss_function(w, x, y):
     rows = 1 - y * (w @ x.T)
     rows_sq = np.maximum(rows, 0) ** 2
     return np.sum(rows_sq)
+
+def regularization(w):
+    return np.sum(w**2)
+
+def SVM_algorithm(w, x, y, C):
+    return C * loss_function(w, x, y) + regularization(w)
 
 @njit
 def fast_H(x_data, x_indptr, C):
@@ -189,7 +191,7 @@ class CoordinateDescent:
         self.ro = ro  # in (0, 1/2)
         self.eps = eps  # solution accuracy (for stopping condition)
         self.max_iter = max_iter
-        self.w_history = []
+        self.history = []
         self.subiter = None
 
     def fit(self, x, y):
@@ -237,12 +239,14 @@ class CoordinateDescent:
             self.log(iter)
             stop = self.subiter.iteration()
             self.w = self.subiter.w
-            self.w_history.append(self.w)
             iter += 1
         return self.w
 
     def log(self, iter):
-        print(datetime.isoformat(datetime.now()), iter, loss_function(self.w, self.x, self.y))
+        from time import time
+        loss = SVM_algorithm(self.w, self.x, self.y, self.C)
+        self.history.append((self.w.copy(), iter, time(), loss))
+        print(time(), iter, loss)
 
     def fit_process(self, x, y):
         self.fit(x, y)
