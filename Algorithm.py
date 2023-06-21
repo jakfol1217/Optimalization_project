@@ -237,6 +237,7 @@ class CoordinateDescent:
             self.log(iter)
             stop = self.subiter.iteration()
             self.w = self.subiter.w
+            self.w_history.append(self.w)
             iter += 1
         return self.w
 
