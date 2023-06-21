@@ -166,7 +166,7 @@ class CoordinateDescent:
         #wz = copy.deepcopy(w)
         #wz[i] += z
         res = 1
-        res += 2 * self.C * self.sum_vector_csr(self.x2[:, i], idx)
+        res += 2 * self.C * very_fast(self.x2, i, idx)
 
         return res
 
