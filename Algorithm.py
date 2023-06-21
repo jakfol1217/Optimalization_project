@@ -147,7 +147,7 @@ class CoordinateDescent:
         z = lam * d
         iter = 0
         while iter < self.max_iter:
-            if lam <= D_hat_hat / ((self._H(i) / 2) + self.ro):
+            if lam <= D_hat_hat / ((self.H[i] / 2) + self.ro):
                 break
             if self._D(w, z, i, idx, bjs) - self._D(w, 0, i, idx, bjs) <= self.ro * z ** 2:
                 break
